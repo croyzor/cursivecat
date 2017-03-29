@@ -7,9 +7,11 @@ extern crate cursive;
 use rustc_serialize::json;
 use cursive::Cursive;
 use cursive::views::*;
+use cursive::align::*;
 use std::path::Path;
 use std::fs::File;
 use std::io::prelude::*;
+use std::string::String;
 
 /*
 #[derive(RustcDecodable)]
@@ -31,6 +33,15 @@ struct AddresseeData {
 */
 
 #[derive(RustcDecodable)]
+struct Response {
+    page: i32,
+    n: i32,
+    posts: Vec<Question>,
+    username: String
+}
+
+
+#[derive(RustcDecodable)]
 struct Question {
     //id: i64,
     //likes: i16,
@@ -45,7 +56,7 @@ struct Question {
     //addresseeData: AddresseeData
 }
 
-/*
+/* New UI, 
 fn nui(data: Vec<Question>) {
     let mut app = Cursive::new();
     let mut sel = SelectView::new();
@@ -66,28 +77,75 @@ fn nui(data: Vec<Question>) {
 fn ui(data: Vec<Question>) {
     let mut app = Cursive::new();
     let mut lst = ListView::new();
+    let mut ix = 0;
     for q in data {
-        let comment = q.comment;
-        lst.add_child("fuck",TextView::new(comment));
+        let view = TextView::new(q.comment.to_string());
+        lst.add_child(&ix.to_string(), view);
+        ix += 1;
     }
     app.add_layer(lst);
     app.add_global_callback('q', |a| a.quit());
     app.run();
 }
 
-/*
-fn show_question(curs: &mut Cursive, q: &Question) {
-    let panes = LinearLayout::vertical();
-    panes.add_child(TextView::new(q.comment));
-    panes.add_child(TextView::new(q.reply));
-    curs.add_layer(panes);
+fn show_question(q: &Question) -> LinearLayout {
+    let mut panes = LinearLayout::vertical();
+    let left  = TextView::new(q.comment.to_string());
+    let right = TextView::new(q.reply.to_string());
+
+    // Add question on top
+    panes.add_child(left);
+    // Add padding 
+    panes.add_child(DummyView);
+    panes.add_child(TextView::new("---").h_align(HAlign::Center));
+    panes.add_child(DummyView);
+    // Add answer on bottom
+    panes.add_child(right);
+    /*
+    panes.add_child(left);
+    LinearLayout::weight(panes, 1);
+
+    panes.add_child(right);
+    LinearLayout::weight(panes, 1);
+    */
+    return panes;
 }
-*/
+
+fn question_list(data: &Vec<Question>) -> ListView {
+    let mut lst = ListView::new();
+    let mut ix = 0;
+    for q in data {
+        let mut s: String = "".to_string();
+        if q.comment.len() > 30 {
+            s += &q.comment[0..30];
+        }
+        else {
+            s += &q.comment;
+        }
+        s += "...";
+        println!("{}", s);
+        let view = TextView::new(s);
+        lst.add_child(&ix.to_string(), view);
+        ix += 1;
+    }
+    return lst;
+}
+
+fn test_ui(qs: Vec<Question>) {
+    let mut app = Cursive::new();
+    let mut lin = LinearLayout::horizontal();
+    lin.add_child(question_list(&qs));
+    lin.add_child(DummyView);
+    lin.add_child(show_question(&qs[0]));
+    app.add_global_callback('q', |a| a.quit());
+    app.add_layer(lin);
+    app.run();
+}
 
 fn main() {
    
     // Open the JSON file located at path
-    let path = Path::new("data.json");
+    let path = Path::new("resp.json");
     let mut file = match File::open(&path) {
         Err(why) => panic!("Couldn't open file: {}", why),
         Ok(file) => file,
@@ -101,10 +159,11 @@ fn main() {
     };
 
     // Decode the JSON into a vector of our question struct
-    let data: Vec<Question> = match json::decode(&s) {
+    let data: Response = match json::decode(&s) {
         Ok(question) => question,
         Err(why) => panic!("Decoding failed: {}", why),
     };
     
-    ui(data);
+    //ui(data.posts);
+    test_ui(data.posts);
 }
