@@ -1,0 +1,9 @@
+[package]
+name = "qcat"
+version = "0.1.0"
+authors = ["croy <craigr63@gmail.com>"]
+
+[dependencies]
+hyper = "*"
+rustc-serialize = "*"
+cursive = "*"
