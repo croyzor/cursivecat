@@ -8,29 +8,11 @@ use rustc_serialize::json;
 use cursive::Cursive;
 use cursive::views::*;
 use cursive::align::*;
+use cursive::traits::*;
 use std::path::Path;
 use std::fs::File;
 use std::io::prelude::*;
 use std::string::String;
-
-/*
-#[derive(RustcDecodable)]
-struct SenderData {
-    id: bool,
-    avatar: String
-}
-
-#[derive(RustcDecodable)]
-struct AddresseeData {
-    id: i64,
-    verified: bool,
-    username: String,
-    twitterid: Option<i64>,
-    facebookid: Option<i64>,
-    avatar: String,
-    following: bool
-}
-*/
 
 #[derive(RustcDecodable)]
 struct Response {
@@ -43,98 +25,63 @@ struct Response {
 
 #[derive(RustcDecodable)]
 struct Question {
-    //id: i64,
-    //likes: i16,
-    //topic_question: bool,
-    //liked: bool,
     timestamp: i64,
     reply: String,
     comment: String,
-    //filename: Option<String>,
-    //isquestion: i16,
-    //senderData: SenderData,
-    //addresseeData: AddresseeData
-}
-
-/* New UI, 
-fn nui(data: Vec<Question>) {
-    let mut app = Cursive::new();
-    let mut sel = SelectView::new();
-    let mut ix = 0;
-    for q in data {
-        let comment = q.comment;
-        sel.add_item(comment, q);
-        ix = ix + 1;
-    }
-    //sel.on_submit(show_question);
-    app.add_layer(sel);
-    app.add_global_callback('q', |a| a.quit());
-    app.run();
-}
-*/
-
-// Show as a list w/o select
-fn ui(data: Vec<Question>) {
-    let mut app = Cursive::new();
-    let mut lst = ListView::new();
-    let mut ix = 0;
-    for q in data {
-        let view = TextView::new(q.comment.to_string());
-        lst.add_child(&ix.to_string(), view);
-        ix += 1;
-    }
-    app.add_layer(lst);
-    app.add_global_callback('q', |a| a.quit());
-    app.run();
 }
 
 fn show_question(q: &Question) -> LinearLayout {
     let mut panes = LinearLayout::vertical();
-    let left  = TextView::new(q.comment.to_string());
-    let right = TextView::new(q.reply.to_string());
+    let left  = TextView::new(q.comment.to_string()).with_id("question");
+    let right = TextView::new(q.reply.to_string()).with_id("reply");
 
     // Add question on top
     panes.add_child(left);
+    //
     // Add padding 
     panes.add_child(DummyView);
     panes.add_child(TextView::new("---").h_align(HAlign::Center));
     panes.add_child(DummyView);
+
     // Add answer on bottom
     panes.add_child(right);
-    /*
-    panes.add_child(left);
-    LinearLayout::weight(panes, 1);
 
-    panes.add_child(right);
-    LinearLayout::weight(panes, 1);
-    */
     return panes;
 }
 
-fn question_list(data: &Vec<Question>) -> ListView {
-    let mut lst = ListView::new();
+fn question_list(data: &Vec<Question>) -> SelectView<i32> {
+    let mut lst = SelectView::new();
     let mut ix = 0;
     for q in data {
         let mut s: String = "".to_string();
-        if q.comment.len() > 30 {
-            s += &q.comment[0..30];
+        let c: String = match q.comment.lines().next() {
+            Some(s) => s.to_string(),
+            None => panic!("Something went wrong in `lines()`"),
+        };
+        if c.len() > 30 {
+            s += &c[0..30];
+            s += "...";
         }
         else {
-            s += &q.comment;
+            s += &c;
         }
-        s += "...";
-        println!("{}", s);
-        let view = TextView::new(s);
-        lst.add_child(&ix.to_string(), view);
+        lst.add_item(s, ix);
         ix += 1;
     }
     return lst;
 }
 
+fn update(curs: &mut Cursive, id: &i32) {
+    // TODO: fn to update the contents of the question/reply panel
+}
+
 fn test_ui(qs: Vec<Question>) {
     let mut app = Cursive::new();
     let mut lin = LinearLayout::horizontal();
-    lin.add_child(question_list(&qs));
+    let mut ql = question_list(&qs);
+    let mut qa = show_question(&qs[0]);
+    ql.set_on_select(update);
+    lin.add_child(ql);
     lin.add_child(DummyView);
     lin.add_child(show_question(&qs[0]));
     app.add_global_callback('q', |a| a.quit());
