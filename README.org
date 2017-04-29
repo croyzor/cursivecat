@@ -1,3 +1,3 @@
 #+TITLE: Cursive Cat
 
-This is a terminal interface for viewing curiouscat.me pages, using Cursive and Hyper. Right now it only displays one page I've already downloaded from `api.curiouscat.me/profile?username=[USER]` while I work on the ui.
+This is a terminal interface for viewing curiouscat.me pages, using Cursive and Hyper. Right now it only displays one page I've already downloaded from ~api.curiouscat.me/profile?username=[USER]~ while I work on the ui.
