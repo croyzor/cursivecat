@@ -49,7 +49,7 @@ fn show_question(q: &Question) -> LinearLayout {
     return panes;
 }
 
-fn question_list(data: &Vec<Question>) -> SelectView<Question> {
+fn question_list(data: &Vec<Question>) -> SelectView<i32> {
     let mut lst = SelectView::new();
     let mut ix = 0;
     for q in data {
@@ -71,7 +71,7 @@ fn question_list(data: &Vec<Question>) -> SelectView<Question> {
     return lst;
 }
 
-fn update(curs: &mut Cursive, q: &Question) {
+fn update(curs: &mut Cursive, q: &i32) {
     // TODO: fn to update the contents of the question/reply panel
 }
 
@@ -92,7 +92,7 @@ fn test_ui(qs: Vec<Question>) {
 fn main() {
    
     // Open the JSON file located at path
-    let path = Path::new("resp.json");
+    let path = Path::new("src/resp.json");
     let mut file = match File::open(&path) {
         Err(why) => panic!("Couldn't open file: {}", why),
         Ok(file) => file,
