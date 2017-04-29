@@ -49,7 +49,7 @@ fn show_question(q: &Question) -> LinearLayout {
     return panes;
 }
 
-fn question_list(data: &Vec<Question>) -> SelectView<i32> {
+fn question_list(data: &Vec<Question>) -> SelectView<Question> {
     let mut lst = SelectView::new();
     let mut ix = 0;
     for q in data {
@@ -71,7 +71,7 @@ fn question_list(data: &Vec<Question>) -> SelectView<i32> {
     return lst;
 }
 
-fn update(curs: &mut Cursive, id: &i32) {
+fn update(curs: &mut Cursive, q: &Question) {
     // TODO: fn to update the contents of the question/reply panel
 }
 
