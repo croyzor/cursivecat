@@ -26,14 +26,14 @@ struct Response {
 #[derive(RustcDecodable)]
 struct Question {
     timestamp: i64,
-    reply: String,
+    reply: Option<String>,
     comment: String,
 }
 
 fn show_question(q: &Question) -> LinearLayout {
     let mut panes = LinearLayout::vertical();
     let left  = TextView::new(q.comment.to_string()).with_id("question");
-    let right = TextView::new(q.reply.to_string()).with_id("reply");
+    let right = TextView::new(q.reply.unwrap().to_string()).with_id("reply");
 
     // Add question on top
     panes.add_child(left);
@@ -49,7 +49,7 @@ fn show_question(q: &Question) -> LinearLayout {
     return panes;
 }
 
-fn question_list(data: &Vec<Question>) -> SelectView<i32> {
+fn question_list(data: &Vec<Question>) -> SelectView<Question> {
     let mut lst = SelectView::new();
     let mut ix = 0;
     for q in data {
@@ -58,21 +58,45 @@ fn question_list(data: &Vec<Question>) -> SelectView<i32> {
             Some(s) => s.to_string(),
             None => panic!("Something went wrong in `lines()`"),
         };
+        // If length of the question text is too long, cut it off
         if c.len() > 30 {
-            s += &c[0..30];
+            s += &c[0..27];
             s += "...";
         }
         else {
             s += &c;
         }
-        lst.add_item(s, ix);
+        // Here's some outrageous hackery in case you were wondering whether
+        // this was my first time with rust (it is, and I am bad)
+        let question_reply = match q.reply {
+                Some(r) => r.to_string(),
+                None    => "".to_string(),
+        };
+        let mut question = Question {
+            comment: q.comment.to_string(),
+            reply: Some(question_reply),
+            timestamp: q.timestamp
+        };
+        lst.add_item(s, question);
         ix += 1;
     }
     return lst;
 }
 
-fn update(curs: &mut Cursive, q: &i32) {
-    // TODO: fn to update the contents of the question/reply panel
+fn update(curs: &mut Cursive, q: &Question) {
+    let msg = &q.comment[0..5];
+    //let msg2 = &q.reply[0..5];
+    match curs.find_id::<TextView>("question") {
+        //Some(txt) => txt.set_content(q.comment.to_string()),
+        Some(txt) => txt.set_content(msg.to_string()),
+        None => (),
+    };
+    match curs.find_id::<TextView>("reply") {
+        //Some(txt) => txt.set_content(q.reply.to_string()),
+        Some(txt) => txt.set_content("professor jiggly is loose in the\
+                                      cat room".to_string()),
+        None => (),
+    };
 }
 
 fn test_ui(qs: Vec<Question>) {
@@ -80,6 +104,7 @@ fn test_ui(qs: Vec<Question>) {
     let mut lin = LinearLayout::horizontal();
     let mut ql = question_list(&qs);
     let mut qa = show_question(&qs[0]);
+    // Function to update textview when a new question is highlighted
     ql.set_on_select(update);
     lin.add_child(ql);
     lin.add_child(DummyView);
