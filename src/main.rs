@@ -33,8 +33,11 @@ struct Question {
 fn show_question(q: &Question) -> LinearLayout {
     let mut panes = LinearLayout::vertical();
     let left  = TextView::new(q.comment.to_string()).with_id("question");
-    let right = TextView::new(q.reply.unwrap().to_string()).with_id("reply");
-
+    let reply = match q.reply {
+        Some(ref x) => x.to_string(),
+        None => "".to_string(),
+    };
+    let right = TextView::new(reply).with_id("reply");
     // Add question on top
     panes.add_child(left);
     //
@@ -69,7 +72,7 @@ fn question_list(data: &Vec<Question>) -> SelectView<Question> {
         // Here's some outrageous hackery in case you were wondering whether
         // this was my first time with rust (it is, and I am bad)
         let question_reply = match q.reply {
-                Some(r) => r.to_string(),
+                Some(ref r) => r.to_string(),
                 None    => "".to_string(),
         };
         let mut question = Question {
@@ -84,17 +87,17 @@ fn question_list(data: &Vec<Question>) -> SelectView<Question> {
 }
 
 fn update(curs: &mut Cursive, q: &Question) {
-    let msg = &q.comment[0..5];
-    //let msg2 = &q.reply[0..5];
+    // TODO: implement line wrapping
     match curs.find_id::<TextView>("question") {
-        //Some(txt) => txt.set_content(q.comment.to_string()),
-        Some(txt) => txt.set_content(msg.to_string()),
+        Some(txt) => txt.set_content(q.comment.to_string()),
         None => (),
     };
+    let reply = match q.reply {
+        Some(ref r) => r.to_string(),
+        None => "".to_string(),
+    };
     match curs.find_id::<TextView>("reply") {
-        //Some(txt) => txt.set_content(q.reply.to_string()),
-        Some(txt) => txt.set_content("professor jiggly is loose in the\
-                                      cat room".to_string()),
+        Some(txt) => txt.set_content(reply),
         None => (),
     };
 }
