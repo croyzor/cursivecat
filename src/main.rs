@@ -1,10 +1,12 @@
+#[macro_use]
+extern crate serde_derive;
+extern crate serde;
+extern crate serde_json;
 extern crate hyper;
-extern crate rustc_serialize;
 extern crate cursive;
 
 // HTTP library
 //use hyper::client;
-use rustc_serialize::json;
 use cursive::Cursive;
 use cursive::views::*;
 use cursive::align::*;
@@ -14,7 +16,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::string::String;
 
-#[derive(RustcDecodable)]
+#[derive(Deserialize)]
 struct Response {
     page: i32,
     n: i32,
@@ -23,7 +25,7 @@ struct Response {
 }
 
 
-#[derive(RustcDecodable)]
+#[derive(Deserialize)]
 struct Question {
     timestamp: i64,
     reply: Option<String>,
@@ -134,7 +136,7 @@ fn main() {
     };
 
     // Decode the JSON into a vector of our question struct
-    let data: Response = match json::decode(&s) {
+    let data: Response = match serde_json::from_str(&s) {
         Ok(question) => question,
         Err(why) => panic!("Decoding failed: {}", why),
     };

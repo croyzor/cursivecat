@@ -5,5 +5,7 @@ authors = ["croy <craigr63@gmail.com>"]
 
 [dependencies]
 hyper = "*"
-rustc-serialize = "*"
+serde = "*"
+serde_derive = "*"
+serde_json = "*"
 cursive = "*"
