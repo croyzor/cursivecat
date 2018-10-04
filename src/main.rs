@@ -6,7 +6,8 @@ extern crate hyper;
 extern crate cursive;
 
 // HTTP library
-//use hyper::client;
+use hyper::client;
+use hyper::rt::{self, Future, Stream};
 use cursive::Cursive;
 use cursive::views::*;
 use cursive::align::*;
@@ -15,6 +16,7 @@ use std::path::Path;
 use std::fs::File;
 use std::io::prelude::*;
 use std::string::String;
+use std::io::Read;
 
 #[derive(Deserialize)]
 struct Response {
@@ -30,6 +32,23 @@ struct Question {
     comment: String,
 }
 
+fn fetch_user_questions() -> impl Future<Item=(), Error=()> {
+    let http_client = client::Client::new();
+    let uri = "http://curiouscat.me/api/v2/profile?username=shaun_jen".parse::<hyper::Uri>().unwrap();
+    let mut resp = String::new();
+    http_client
+        .get(uri)
+        .and_then(|res| {
+            res.into_body().for_each(|chunk| {
+                std::io::stdout().write_all(&chunk)
+                    .map_err(|e| panic!("exmaplea {}", e))
+            })
+        })
+        .map(|a| println!("done"))
+        .map_err(|err| eprintln!("Error {}", err))
+}
+
+/// Returns a vertical split with the text and response for a given question
 fn show_question(q: &Question) -> LinearLayout {
     let mut panes = LinearLayout::vertical();
     let left  = TextView::new(q.comment.to_string()).with_id("question");
@@ -41,7 +60,7 @@ fn show_question(q: &Question) -> LinearLayout {
     // Add question on top
     panes.add_child(left);
     //
-    // Add padding 
+    // Add padding
     panes.add_child(DummyView);
     panes.add_child(TextView::new("---").h_align(HAlign::Center));
     panes.add_child(DummyView);
@@ -52,6 +71,7 @@ fn show_question(q: &Question) -> LinearLayout {
     return panes;
 }
 
+/// The list of questions which lives on the left pane
 fn question_list(data: &Vec<Question>) -> SelectView<Question> {
     let mut lst = SelectView::new();
     let mut ix = 0;
@@ -86,6 +106,8 @@ fn question_list(data: &Vec<Question>) -> SelectView<Question> {
     return lst;
 }
 
+/// Shows a specific question
+/// Used to update the display when user switches between questions
 fn update(curs: &mut Cursive, q: &Question) {
     // TODO: implement line wrapping
     match curs.find_id::<TextView>("question") {
@@ -117,8 +139,8 @@ fn test_ui(qs: Vec<Question>) {
     app.run();
 }
 
+/*
 fn main() {
-   
     // Open the JSON file located at path
     let path = Path::new("src/resp.json");
     let mut file = match File::open(&path) {
@@ -138,7 +160,12 @@ fn main() {
         Ok(question) => question,
         Err(why) => panic!("Decoding failed: {}", why),
     };
-    
+
     //ui(data.posts);
     test_ui(data.posts);
+}
+ */
+
+fn main() {
+    rt::run(fetch_user_questions());
 }
