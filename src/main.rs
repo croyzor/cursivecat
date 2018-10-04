@@ -18,8 +18,6 @@ use std::string::String;
 
 #[derive(Deserialize)]
 struct Response {
-    page: i32,
-    n: i32,
     posts: Vec<Question>,
     username: String
 }
