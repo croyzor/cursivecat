@@ -91,7 +91,7 @@ fn question_list(data: &Vec<Question>) -> SelectView<Question> {
 fn update(curs: &mut Cursive, q: &Question) {
     // TODO: implement line wrapping
     match curs.find_id::<TextView>("question") {
-        Some(txt) => txt.set_content(q.comment.to_string()),
+        Some(mut txt) => txt.set_content(q.comment.to_string()),
         None => (),
     };
     let reply = match q.reply {
@@ -99,13 +99,13 @@ fn update(curs: &mut Cursive, q: &Question) {
         None => "".to_string(),
     };
     match curs.find_id::<TextView>("reply") {
-        Some(txt) => txt.set_content(reply),
+        Some(mut txt) => txt.set_content(reply),
         None => (),
     };
 }
 
 fn test_ui(qs: Vec<Question>) {
-    let mut app = Cursive::new();
+    let mut app = Cursive::ncurses();
     let mut lin = LinearLayout::horizontal();
     let mut ql = question_list(&qs);
     let mut qa = show_question(&qs[0]);
