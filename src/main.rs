@@ -3,11 +3,13 @@ extern crate serde_derive;
 extern crate serde;
 extern crate serde_json;
 extern crate hyper;
+extern crate hyper_tls;
 extern crate cursive;
 
 // HTTP library
 use hyper::client;
 use hyper::rt::{self, Future, Stream};
+use hyper_tls::HttpsConnector;
 use cursive::Cursive;
 use cursive::views::*;
 use cursive::align::*;
@@ -17,6 +19,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::string::String;
 use std::io::Read;
+use std::io;
 
 #[derive(Deserialize)]
 struct Response {
@@ -32,19 +35,28 @@ struct Question {
     comment: String,
 }
 
-fn fetch_user_questions() -> impl Future<Item=(), Error=()> {
-    let http_client = client::Client::new();
-    let uri = "http://curiouscat.me/api/v2/profile?username=shaun_jen".parse::<hyper::Uri>().unwrap();
-    let mut resp = String::new();
+fn fetch_user_questions(url: String) -> impl Future<Item=String, Error=()> {
+    let https = HttpsConnector::new(1)
+        .expect("TLS initialization failed");
+    let http_client = client::Client::builder()
+        .build::<_, hyper::Body>(https);
+
+    let uri = url
+        .parse::<hyper::Uri>()
+        .unwrap();
+
     http_client
         .get(uri)
         .and_then(|res| {
-            res.into_body().for_each(|chunk| {
-                std::io::stdout().write_all(&chunk)
-                    .map_err(|e| panic!("exmaplea {}", e))
-            })
+            println!("response {}", res.status());
+            println!("headers {:#?}", res.headers());
+            res.into_body().concat2()
         })
-        .map(|a| println!("done"))
+        .and_then(|body| {
+            let s = ::std::str::from_utf8(&body)
+                .expect("httpbin sends utf-8 JSON");
+            Ok(s.to_string())
+        })
         .map_err(|err| eprintln!("Error {}", err))
 }
 
@@ -139,33 +151,19 @@ fn test_ui(qs: Vec<Question>) {
     app.run();
 }
 
-/*
 fn main() {
-    // Open the JSON file located at path
-    let path = Path::new("src/resp.json");
-    let mut file = match File::open(&path) {
-        Err(why) => panic!("Couldn't open file: {}", why),
-        Ok(file) => file,
-    };
+    let url = "https://curiouscat.me/api/v2/profile?username=";
 
-    // Read the file to string s
-    let mut s = String::new();
-    match file.read_to_string(&mut s) {
-        Err(why) => panic!("Couldn't read string: {}", why),
-        Ok(_) => (),
-    };
+    let resp = rt::run(fetch_user_questions(url.to_string()))
+        .wait()
+        .unwrap();
 
     // Decode the JSON into a vector of our question struct
-    let data: Response = match serde_json::from_str(&s) {
+    let data: Response = match serde_json::from_str(&resp) {
         Ok(question) => question,
         Err(why) => panic!("Decoding failed: {}", why),
     };
 
     //ui(data.posts);
     test_ui(data.posts);
-}
- */
-
-fn main() {
-    rt::run(fetch_user_questions());
 }

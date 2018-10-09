@@ -5,6 +5,7 @@ authors = ["croy <craigr63@gmail.com>"]
 
 [dependencies]
 hyper = "*"
+hyper-tls = "*"
 serde = "*"
 serde_derive = "*"
 serde_json = "*"
