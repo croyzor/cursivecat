@@ -1,5 +1,3 @@
 #+TITLE: Cursive Cat
 
-A terminal interface for viewing curiouscat.me pages, using Cursive. It currently only displays json files downloaded from the curiouscat api.
-
-Http connectivity in progress...
+A terminal interface for viewing curiouscat.me pages, using Cursive.
