@@ -3,17 +3,17 @@ extern crate serde_derive;
 extern crate serde;
 extern crate serde_json;
 extern crate hyper;
+extern crate hyper_tls;
 extern crate cursive;
 
 // HTTP library
-//use hyper::client;
+use hyper::client;
+use hyper::rt::{self, Future, Stream};
+use hyper_tls::HttpsConnector;
 use cursive::Cursive;
 use cursive::views::*;
 use cursive::align::*;
 use cursive::traits::*;
-use std::path::Path;
-use std::fs::File;
-use std::io::prelude::*;
 use std::string::String;
 
 #[derive(Deserialize)]
@@ -30,6 +30,32 @@ struct Question {
     comment: String,
 }
 
+fn fetch_user_questions(url: String) -> impl Future<Item=String, Error=()> {
+    let https = HttpsConnector::new(1)
+        .expect("TLS initialization failed");
+    let http_client = client::Client::builder()
+        .build::<_, hyper::Body>(https);
+
+    let uri = url
+        .parse::<hyper::Uri>()
+        .unwrap();
+
+    http_client
+        .get(uri)
+        .and_then(|res| {
+            println!("response {}", res.status());
+            println!("headers {:#?}", res.headers());
+            res.into_body().concat2()
+        })
+        .and_then(|body| {
+            let s = ::std::str::from_utf8(&body)
+                .expect("httpbin sends utf-8 JSON");
+            Ok(s.to_string())
+        })
+        .map_err(|err| eprintln!("Error {}", err))
+}
+
+/// Returns a vertical split with the text and response for a given question
 fn show_question(q: &Question) -> LinearLayout {
     let mut panes = LinearLayout::vertical();
     let left  = TextView::new(q.comment.to_string()).with_id("question");
@@ -41,7 +67,7 @@ fn show_question(q: &Question) -> LinearLayout {
     // Add question on top
     panes.add_child(left);
     //
-    // Add padding 
+    // Add padding
     panes.add_child(DummyView);
     panes.add_child(TextView::new("---").h_align(HAlign::Center));
     panes.add_child(DummyView);
@@ -52,9 +78,9 @@ fn show_question(q: &Question) -> LinearLayout {
     return panes;
 }
 
+/// The list of questions which lives on the left pane
 fn question_list(data: &Vec<Question>) -> SelectView<Question> {
     let mut lst = SelectView::new();
-    let mut ix = 0;
     for q in data {
         let mut s: String = "".to_string();
         let c: String = match q.comment.lines().next() {
@@ -81,11 +107,12 @@ fn question_list(data: &Vec<Question>) -> SelectView<Question> {
             timestamp: q.timestamp
         };
         lst.add_item(s, question);
-        ix += 1;
     }
     return lst;
 }
 
+/// Shows a specific question
+/// Used to update the display when user switches between questions
 fn update(curs: &mut Cursive, q: &Question) {
     // TODO: implement line wrapping
     match curs.find_id::<TextView>("question") {
@@ -106,7 +133,7 @@ fn test_ui(qs: Vec<Question>) {
     let mut app = Cursive::ncurses();
     let mut lin = LinearLayout::horizontal();
     let mut ql = question_list(&qs);
-    let mut qa = show_question(&qs[0]);
+    show_question(&qs[0]);
     // Function to update textview when a new question is highlighted
     ql.set_on_select(update);
     lin.add_child(ql);
@@ -118,27 +145,20 @@ fn test_ui(qs: Vec<Question>) {
 }
 
 fn main() {
-   
-    // Open the JSON file located at path
-    let path = Path::new("src/resp.json");
-    let mut file = match File::open(&path) {
-        Err(why) => panic!("Couldn't open file: {}", why),
-        Ok(file) => file,
-    };
+    // NOTE: put a username at the end of this url and THE PROGRAM WILL WORK!!
+    // Omitted just now for anonymity's sake
+    let url = "https://curiouscat.me/api/v2/profile?username=";
+    let fut = fetch_user_questions(url.to_string())
+        .map(|body| {
+            // Decode the JSON into a vector of our question struct
+            let data: Response = match serde_json::from_str(&body) {
+                Ok(question) => question,
+                Err(why) => panic!("Decoding failed: {}", why),
+            };
 
-    // Read the file to string s
-    let mut s = String::new();
-    match file.read_to_string(&mut s) {
-        Err(why) => panic!("Couldn't read string: {}", why),
-        Ok(_) => (),
-    };
+            //ui(data.posts);
+            test_ui(data.posts);
+        });
 
-    // Decode the JSON into a vector of our question struct
-    let data: Response = match serde_json::from_str(&s) {
-        Ok(question) => question,
-        Err(why) => panic!("Decoding failed: {}", why),
-    };
-    
-    //ui(data.posts);
-    test_ui(data.posts);
+    rt::run(fut);
 }
