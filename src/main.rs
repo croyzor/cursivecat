@@ -14,12 +14,7 @@ use cursive::Cursive;
 use cursive::views::*;
 use cursive::align::*;
 use cursive::traits::*;
-use std::path::Path;
-use std::fs::File;
-use std::io::prelude::*;
 use std::string::String;
-use std::io::Read;
-use std::io;
 
 #[derive(Deserialize)]
 struct Response {
@@ -86,7 +81,6 @@ fn show_question(q: &Question) -> LinearLayout {
 /// The list of questions which lives on the left pane
 fn question_list(data: &Vec<Question>) -> SelectView<Question> {
     let mut lst = SelectView::new();
-    let mut ix = 0;
     for q in data {
         let mut s: String = "".to_string();
         let c: String = match q.comment.lines().next() {
@@ -113,7 +107,6 @@ fn question_list(data: &Vec<Question>) -> SelectView<Question> {
             timestamp: q.timestamp
         };
         lst.add_item(s, question);
-        ix += 1;
     }
     return lst;
 }
@@ -140,7 +133,7 @@ fn test_ui(qs: Vec<Question>) {
     let mut app = Cursive::ncurses();
     let mut lin = LinearLayout::horizontal();
     let mut ql = question_list(&qs);
-    let mut qa = show_question(&qs[0]);
+    show_question(&qs[0]);
     // Function to update textview when a new question is highlighted
     ql.set_on_select(update);
     lin.add_child(ql);
@@ -152,18 +145,20 @@ fn test_ui(qs: Vec<Question>) {
 }
 
 fn main() {
+    // NOTE: put a username at the end of this url and THE PROGRAM WILL WORK!!
+    // Omitted just now for anonymity's sake
     let url = "https://curiouscat.me/api/v2/profile?username=";
+    let fut = fetch_user_questions(url.to_string())
+        .map(|body| {
+            // Decode the JSON into a vector of our question struct
+            let data: Response = match serde_json::from_str(&body) {
+                Ok(question) => question,
+                Err(why) => panic!("Decoding failed: {}", why),
+            };
 
-    let resp = rt::run(fetch_user_questions(url.to_string()))
-        .wait()
-        .unwrap();
+            //ui(data.posts);
+            test_ui(data.posts);
+        });
 
-    // Decode the JSON into a vector of our question struct
-    let data: Response = match serde_json::from_str(&resp) {
-        Ok(question) => question,
-        Err(why) => panic!("Decoding failed: {}", why),
-    };
-
-    //ui(data.posts);
-    test_ui(data.posts);
+    rt::run(fut);
 }
