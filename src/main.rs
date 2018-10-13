@@ -19,7 +19,6 @@ use std::string::String;
 #[derive(Deserialize)]
 struct Response {
     posts: Vec<Question>,
-    username: String
 }
 
 
