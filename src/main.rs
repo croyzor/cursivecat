@@ -143,10 +143,20 @@ fn test_ui(qs: Vec<Question>) {
     app.run();
 }
 
+fn print_usage(prog_name: &String) {
+    println!("Usage:");
+    println!("    {} <USERNAME>\n", prog_name);
+}
+
 fn main() {
-    // NOTE: put a username at the end of this url and THE PROGRAM WILL WORK!!
-    // Omitted just now for anonymity's sake
-    let url = "https://curiouscat.me/api/v2/profile?username=";
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() != 2 {
+        print_usage(&args[0]);
+        return;
+    }
+
+    let url = format!("https://curiouscat.me/api/v2/profile?username={}",
+                      args[1]);
     let fut = fetch_user_questions(url.to_string())
         .map(|body| {
             // Decode the JSON into a vector of our question struct
